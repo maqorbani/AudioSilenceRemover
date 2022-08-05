@@ -1,9 +1,8 @@
-import os
 import sys
 import numpy as np
+from scipy.signal import find_peaks, peak_widths
 import torch
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
 from pydub import AudioSegment
 # from pydub.playback import play
 import plotly.graph_objects as go
@@ -37,7 +36,7 @@ def sil_det(npArr, npArr2, length, frame_rate, threshold):
     a = np.convolve(np.ones(frame_len), a, 'same')
     npArr = npArr[a != 0].reshape(-1, 1)
     npArr2 = npArr2[a != 0].reshape(-1, 1)
-    return np.concatenate((npArr, npArr2), axis=1)
+    return np.concatenate((npArr, npArr2), axis=1), a
 
 
 def sil_det_gpu(npArr, npArr2, length, frame_rate, threshold):
@@ -76,24 +75,32 @@ def plotter(npArr, threshold, indx, frame_rate):
 
 
 def audio_export(output, frame_rate, file_name):
-    output = AudioSegment(out.tobytes(),
+    output = AudioSegment(output.tobytes(),
                           frame_rate=frame_rate,
                           sample_width=2, channels=2)
     output.export(f"{file_name}.mp3", format="mp3")
 
 
+def main(file_name, out_file_name, length, threshold):
+    right, left, frame_rate = get_audio_file(file_name)
+    out, convArr = sil_det(right, left, length, frame_rate, threshold)
+    indx = sqnc_indx(convArr)
+    plotter(right, threshold, indx, frame_rate)
+    prompter(out, frame_rate, file_name, out_file_name)
+
+
+def prompter(out, frame_rate, file_name, out_file_name):
+    ans = input('Save a new mp3 file with the detected gaps removed? [y/any] ')
+    if ans == 'y':
+        audio_export(out, frame_rate, out_file_name)
+        return None
+    else:
+        length = float(input('Enter the new length: '))
+        threshold = int(input('Enter the new threshold: '))
+        main(file_name, out_file_name, length, threshold)
+
+
 if __name__ == '__main__':
     args = sys.argv[1:]  # "file.mp3" -length -threshold
-    try:
-        length = args[1]  # Silence length threshold
-    except ValueError:
-        length = 0.5  # Default length
-    try:
-        threshold = args[2]  # Sound wave power threshold
-    except ValueError:
-        threshold = 3000  # Default threshold
-    file_name = args[0]
-    out_file_name = file_name[:-4] + '_gaps_removed'
-    right, left, frame_rate = get_audio_file(file_name)
-    out = sil_det(right, left, length, frame_rate, threshold)
-    audio_export(out, frame_rate, out_file_name)
+    file_name, out_file_name, length, threshold = get_args(args)
+    main(file_name, out_file_name, length, threshold)
