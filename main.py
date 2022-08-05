@@ -34,13 +34,27 @@ def sil_det_gpu(npArr, npArr2, length, frame_rate, threshold):
     return (npArr[thr != 0]).cpu()
 
 
-def get_audio_file(file_name):
-    sound = AudioSegment.from_mp3(file_name)
-    frame_rate = sound.frame_rate
-    monos = sound.split_to_mono()
-    right = np.array(monos[0].get_array_of_samples())
-    left = np.array(monos[1].get_array_of_samples())
-    return right, left, frame_rate
+def sqnc_indx(convArr):
+    peaks = find_peaks(np.where(convArr > 1, 1, 0))[0]
+    width = peak_widths(np.where(convArr > 1, 1, 0), peaks, rel_height=0.5)
+    indx = [0]
+    for i in range(width[2].shape[0]):
+        indx += [int(width[2][i]), int(width[3][i])]
+    indx += [convArr.shape[0]-1]
+    return indx
+
+
+def plotter(npArr, threshold, indx, frame_rate):
+    x = np.linspace(0, npArr.shape[0], npArr.shape[0])
+    fig = go.Figure(data=go.Scatter(x=x, y=npArr))
+    fig.add_hline(y=threshold)
+    fig.add_hline(y=-threshold)
+    for i in range(len(indx)//2):
+        fig.add_vrect(
+            x0=indx[i*2], x1=indx[i*2+1], fillcolor="red",
+            annotation_text=f"{round((indx[i*2+1]-indx[i*2])/frame_rate, 2)}s",
+            annotation_position="top left", opacity=0.25, line_width=0)
+    fig.show()
 
 
 def audio_export(output, frame_rate, file_name):
