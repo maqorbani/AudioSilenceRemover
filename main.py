@@ -6,6 +6,24 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from pydub import AudioSegment
 # from pydub.playback import play
+import plotly.graph_objects as go
+
+
+def get_args(args):
+    file_name = args[0]
+    out_file_name = file_name[:-4] + '_gaps_removed'  # f_name + 'gaps_removed'
+    length = float(args[1])  # Silence length threshold
+    threshold = int(args[2])  # Sound wave power threshold
+    return file_name, out_file_name, length, threshold
+
+
+def get_audio_file(file_name):
+    sound = AudioSegment.from_mp3(file_name)
+    frame_rate = sound.frame_rate
+    monos = sound.split_to_mono()
+    right = np.array(monos[0].get_array_of_samples())
+    left = np.array(monos[1].get_array_of_samples())
+    return right, left, frame_rate
 
 
 def sil_det(npArr, npArr2, length, frame_rate, threshold):
