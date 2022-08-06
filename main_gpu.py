@@ -24,22 +24,6 @@ def get_audio_file(file_name):
     return right, left, frame_rate
 
 
-""""
-def sil_det(npArr, npArr2, length, frame_rate, threshold):
-    '''
-    Silence detection and removal
-    length is given in seconds (s)
-    Threshold is given in sound wave power not in dB
-    '''
-    frame_len = int(length * frame_rate / 2)
-    a = np.where(np.abs(npArr) > threshold, 1, 0)
-    a = np.convolve(np.ones(frame_len), a, 'same')
-    npArr = npArr[a != 0].reshape(-1, 1)
-    npArr2 = npArr2[a != 0].reshape(-1, 1)
-    return np.concatenate((npArr, npArr2), axis=1), a
-"""
-
-
 def sil_det(npArr, npArr2, length, frame_rate, threshold):
     frame_len = int(length * frame_rate / 2)
     npArr = torch.tensor(npArr)
