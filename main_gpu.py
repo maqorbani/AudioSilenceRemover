@@ -12,7 +12,11 @@ def get_args(args):
     out_file_name = file_name[:-4] + '_gaps_removed'  # f_name + 'gaps_removed'
     length = float(args[1])  # Silence length threshold
     threshold = int(args[2])  # Sound wave power threshold
-    return file_name, out_file_name, length, threshold
+    try:
+        plot = True if int(args[3]) == 1 else False
+    except IndexError:
+        plot = False
+    return file_name, out_file_name, length, threshold, plot
 
 
 def get_audio_file(file_name):
@@ -66,12 +70,15 @@ def audio_export(output, frame_rate, file_name):
     output.export(f"{file_name}.mp3", format="mp3")
 
 
-def main(file_name, out_file_name, length, threshold):
+def main(file_name, out_file_name, length, threshold, plot=False):
     right, left, frame_rate = get_audio_file(file_name)
     out, convArr = sil_det(right, left, length, frame_rate, threshold)
     indx = sqnc_indx(convArr)
-    plotter(right, threshold, indx, frame_rate)
-    prompter(out, frame_rate, file_name, out_file_name)
+    if plot:
+        plotter(right, threshold, indx, frame_rate)
+        prompter(out, frame_rate, file_name, out_file_name)
+    else:
+        audio_export(out, frame_rate, out_file_name)
 
 
 def prompter(out, frame_rate, file_name, out_file_name):
@@ -82,10 +89,10 @@ def prompter(out, frame_rate, file_name, out_file_name):
     else:
         length = float(input('Enter the new length: '))
         threshold = int(input('Enter the new threshold: '))
-        main(file_name, out_file_name, length, threshold)
+        main(file_name, out_file_name, length, threshold, True)
 
 
 if __name__ == '__main__':
     args = sys.argv[1:]  # "file.mp3" -length -threshold
-    file_name, out_file_name, length, threshold = get_args(args)
-    main(file_name, out_file_name, length, threshold)
+    file_name, out_file_name, length, threshold, plot = get_args(args)
+    main(file_name, out_file_name, length, threshold, plot)
