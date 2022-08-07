@@ -11,7 +11,9 @@ with the audio intensity threshold parameter of 3000 and the duration threshold 
 
 ![newplot](https://user-images.githubusercontent.com/47574645/183245802-6ac811a2-577a-4962-ad7e-f6d5fe972506.png)
 
-The script first plots the initial results with the audio intensity threshold parameter plotted as the plotted black horizontal lines, showing which portions of the audio file will be removed. Then if the user prompts 'y', the truncated audio file will be saved to the disk with a new name. If not, the new parameters will be asked and the process will be repeated.
+If the input plot flag is set to '1', the script first plots the initial results, showing which portions of the audio file will be removed, indicated by the red rectangles. Then if the user prompts 'y', the truncated audio file will be saved to the disk with a new name. If not, the new parameters will be asked and the process will be repeated.
+
+If the input plot flag is set to anything else, including not setting anything, the script saves the truncated audio file instantly without plotting the results to the user.
 
 ## Python dependencies
 
@@ -42,10 +44,11 @@ pip install -r requirements_gpu.txt
 4. Place the audio file in the local folder (or a subdirectory).
 5. Open terminal in the local directory and run the following command.
 ```
-python main.py AudioFile.mp3 [duration_threshold] [audio_intensity_threshold]
+python main.py AudioFile.mp3 [duration_threshold] [audio_intensity_threshold] [plot flag boolean, default=False]
 ```
 For instance:
 ```
+python main.py Recording.mp3 0.5 3000 1
 python main.py Recording.mp3 0.5 3000
 ```
-
+*First command plots the results and the second one saves the results instantly.*
