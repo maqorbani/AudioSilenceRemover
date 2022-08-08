@@ -26,18 +26,25 @@ def get_audio_file(file_name):
     return right, left, frame_rate
 
 
-def sil_det(npArr, npArr2, length, frame_rate, threshold):
+def cumulative(right, left):
+    '''
+    returns the highest amount of audio intensity in each channel
+    '''
+    return np.where(np.abs(right) > np.abs(left), right, left)
+
+
+def sil_det(right, left, cumulative, length, frame_rate, threshold):
     '''
     Silence detection and removal
     length is given in seconds (s)
     Threshold is given in sound wave power not in dB
     '''
     frame_len = int(length * frame_rate / 2)
-    a = np.where(np.abs(npArr) > threshold, 1, 0)
+    a = np.where(np.abs(cumulative) > threshold, 1, 0)
     a = np.convolve(np.ones(frame_len), a, 'same')
-    npArr = npArr[a != 0].reshape(-1, 1)
-    npArr2 = npArr2[a != 0].reshape(-1, 1)
-    return np.concatenate((npArr, npArr2), axis=1), a
+    right = right[a != 0].reshape(-1, 1)
+    left = left[a != 0].reshape(-1, 1)
+    return np.concatenate((right, left), axis=1), a
 
 
 def sqnc_indx(convArr):
@@ -72,10 +79,11 @@ def audio_export(output, frame_rate, file_name):
 
 def main(file_name, out_file_name, length, threshold, plot=False):
     right, left, frame_rate = get_audio_file(file_name)
-    out, convArr = sil_det(right, left, length, frame_rate, threshold)
+    cumu = cumulative(right, left)
+    out, convArr = sil_det(right, left, cumu, length, frame_rate, threshold)
     indx = sqnc_indx(convArr)
     if plot:
-        plotter(right, threshold, indx, frame_rate)
+        plotter(cumu, threshold, indx, frame_rate)
         prompter(out, frame_rate, file_name, out_file_name)
     else:
         audio_export(out, frame_rate, out_file_name)
