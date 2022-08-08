@@ -28,16 +28,25 @@ def get_audio_file(file_name):
     return right, left, frame_rate
 
 
-def sil_det(npArr, npArr2, length, frame_rate, threshold):
+def cumulative(right, left):
+    '''
+    returns the highest amount of audio intensity in each channel
+    '''
+    return np.where(np.abs(right) > np.abs(left), right, left)
+
+
+def sil_det(right, left, cumulative, length, frame_rate, threshold):
     frame_len = int(length * frame_rate / 2)
-    npArr = torch.tensor(npArr)
-    npArr2 = torch.tensor(npArr2)
-    thr = torch.where(npArr > threshold, 1, 0).to('cuda', dtype=torch.float32)
+    right, left = torch.tensor(right), torch.tensor(left)
+    cumulative = torch.tensor(cumulative)
+    thr = torch.where(
+        cumulative > threshold, 1, 0).to('cuda', dtype=torch.float32
+                                         )
     kernel = torch.ones(1, 1, frame_len).to('cuda')
     thr = F.conv1d(thr.view(1, 1, -1), kernel, padding='same').cpu().view(-1)
-    npArr = (npArr[thr != 0]).cpu().view(-1, 1)
-    npArr2 = (npArr2[thr != 0]).cpu().view(-1, 1)
-    return np.concatenate((npArr, npArr2), axis=1), thr
+    right = (right[thr != 0]).cpu().view(-1, 1)
+    left = (left[thr != 0]).cpu().view(-1, 1)
+    return np.concatenate((right, left), axis=1), thr
 
 
 def sqnc_indx(convArr):
@@ -72,10 +81,11 @@ def audio_export(output, frame_rate, file_name):
 
 def main(file_name, out_file_name, length, threshold, plot=False):
     right, left, frame_rate = get_audio_file(file_name)
-    out, convArr = sil_det(right, left, length, frame_rate, threshold)
+    cumu = cumulative(right, left)
+    out, convArr = sil_det(right, left, cumu, length, frame_rate, threshold)
     indx = sqnc_indx(convArr)
     if plot:
-        plotter(right, threshold, indx, frame_rate)
+        plotter(cumu, threshold, indx, frame_rate)
         prompter(out, frame_rate, file_name, out_file_name)
     else:
         audio_export(out, frame_rate, out_file_name)
