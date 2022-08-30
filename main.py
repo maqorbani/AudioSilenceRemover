@@ -57,15 +57,28 @@ def sqnc_indx(convArr):
     return indx
 
 
-def plotter(npArr, threshold, indx, frame_rate):
-    x = np.linspace(0, npArr.shape[0], npArr.shape[0])
+def sampler(npArr, smpl_rate, frame_rate, indx):
+    frames = npArr.shape[0]
+    dvsn = int(frames // (frame_rate * smpl_rate)) + 1
+    rmndr = int((dvsn * frame_rate * smpl_rate) % npArr.shape[0])
+    print(frame_rate * smpl_rate)
+    indx_ = [i // (frame_rate * smpl_rate) for i in indx]
+    smpled = np.pad(npArr, (0, rmndr)).reshape(dvsn, -1)
+    smpled = (np.abs(smpled).max(axis=1))
+    print(indx_)
+    return smpled, indx_
+
+
+def plotter(npArr, threshold, indx, frame_rate, smpl_rate):
+    indx_ = [i * smpl_rate for i in indx]
+    x = np.linspace(0, npArr.shape[0]*smpl_rate, npArr.shape[0])
     fig = go.Figure(data=go.Scatter(x=x, y=npArr))
     fig.add_hline(y=threshold)
     fig.add_hline(y=-threshold)
-    for i in range(len(indx)//2):
+    for i in range(len(indx_)//2):
         fig.add_vrect(
-            x0=indx[i*2], x1=indx[i*2+1], fillcolor="red",
-            annotation_text=f"{round((indx[i*2+1]-indx[i*2])/frame_rate, 2)}s",
+            x0=indx_[i*2], x1=indx_[i*2+1], fillcolor="red",
+            annotation_text=f"{round((indx_[i*2+1]-indx_[i*2]), 2)}s",
             annotation_position="top left", opacity=0.25, line_width=0)
     fig.show()
 
@@ -79,11 +92,13 @@ def audio_export(output, frame_rate, file_name):
 
 def main(file_name, out_file_name, length, threshold, plot=False):
     right, left, frame_rate = get_audio_file(file_name)
+    smpl_rate = 0.01  # ->user input
     cumu = cumulative(right, left)
     out, conved = sil_det(right, left, cumu, length, frame_rate, threshold)
     indx = sqnc_indx(conved)
     if plot:
-        plotter(cumu, threshold, indx, frame_rate)
+        sampled, indx_ = sampler(cumu, smpl_rate, frame_rate, indx)
+        plotter(sampled, threshold, indx_, frame_rate, smpl_rate)
         prompter(out, frame_rate, file_name, out_file_name)
     else:
         audio_export(out, frame_rate, out_file_name)
