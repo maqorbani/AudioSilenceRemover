@@ -40,11 +40,11 @@ def sil_det(right, left, cumulative, length, frame_rate, threshold):
     Threshold is given in sound wave power not in dB
     '''
     frame_len = int(length * frame_rate / 2)
-    a = np.where(np.abs(cumulative) > threshold, 1, 0)
-    a = np.convolve(np.ones(frame_len), a, 'same')
-    right = right[a != 0].reshape(-1, 1)
-    left = left[a != 0].reshape(-1, 1)
-    return np.concatenate((right, left), axis=1), a
+    conved = np.where(np.abs(cumulative) > threshold, 1, 0)
+    conved = np.convolve(np.ones(frame_len), conved, 'same')
+    right = right[conved != 0].reshape(-1, 1)
+    left = left[conved != 0].reshape(-1, 1)
+    return np.concatenate((right, left), axis=1), conved
 
 
 def sqnc_indx(convArr):
@@ -80,8 +80,8 @@ def audio_export(output, frame_rate, file_name):
 def main(file_name, out_file_name, length, threshold, plot=False):
     right, left, frame_rate = get_audio_file(file_name)
     cumu = cumulative(right, left)
-    out, convArr = sil_det(right, left, cumu, length, frame_rate, threshold)
-    indx = sqnc_indx(convArr)
+    out, conved = sil_det(right, left, cumu, length, frame_rate, threshold)
+    indx = sqnc_indx(conved)
     if plot:
         plotter(cumu, threshold, indx, frame_rate)
         prompter(out, frame_rate, file_name, out_file_name)
