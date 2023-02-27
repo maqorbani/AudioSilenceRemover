@@ -18,7 +18,7 @@ def get_args(args):
 
 
 def get_audio_file(file_name):
-    sound = AudioSegment.from_mp3(file_name)
+    sound = AudioSegment.from_file(file_name)
     frame_rate = sound.frame_rate
     monos = sound.split_to_mono()
     right = np.array(monos[0].get_array_of_samples())
